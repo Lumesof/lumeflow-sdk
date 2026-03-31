@@ -1,0 +1,11 @@
+@startuml
+actor "Producer app" as ProducerApp
+participant FlowServer
+participant "OpNetManager.InjectMessageIntoLink" as OpNetInject
+participant "Directed-graph operators" as Operators
+
+ProducerApp -> FlowServer : InjectMessage(job_id, OpNetMessage)
+FlowServer -> FlowServer : validate job status/type\nresolve persisted injector_link_ref
+FlowServer -> OpNetInject : InjectMessageIntoLink
+OpNetInject -> Operators : deliver to directed-graph ingress
+@enduml

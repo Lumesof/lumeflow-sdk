@@ -1,0 +1,12 @@
+@startuml
+left to right direction
+skinparam componentStyle rectangle
+
+component "Operator Process\n(Lumeflow user code)" as OperatorProc
+component "Operator Sidecar\n(runtime adapter)" as Sidecar
+component "OpNet Substrate / Links" as OpNet
+
+OperatorProc <--> Sidecar : bidirectional gRPC\nPublish / Ack streams
+OperatorProc --> OpNet : handler dispatch / async_emit
+Sidecar --> OpNet : OpNet node plugin
+@enduml

@@ -1,0 +1,19 @@
+@startuml
+skinparam componentStyle rectangle
+left to right direction
+
+actor "Lumeflow User /\nControl Client" as Client
+component "Flow Server\n(job orchestrator)" as Flow
+component "OpNet Server\n(mgr+control)" as OpNet
+component "Executor Controller\n(launch/kill)" as Exec
+component "Sidecar CAS\n(artifact ref)" as Cas
+cloud "Running Operators\n(via sidecar)" as Operators
+
+Client --> Flow : SubmitJob / StartJob / GetJobStatus\nCancelJob / List / InjectMessage
+Flow --> OpNet
+Flow --> Exec
+Flow --> Cas
+OpNet --> Operators
+Exec --> Operators
+Cas --> Operators
+@enduml

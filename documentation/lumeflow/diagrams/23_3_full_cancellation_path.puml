@@ -1,0 +1,12 @@
+@startuml
+start
+:Client calls CancelJob;
+:FlowServer sets status -> CANCEL_PENDING;
+:CreateLoop picks pending row;
+:Clear controller refs;
+:Delete directed-graph/operator/instance rows;
+:Destroy executors (parallel bounded);
+:Destroy controller resources;
+:Set status -> CANCELLED;
+stop
+@enduml

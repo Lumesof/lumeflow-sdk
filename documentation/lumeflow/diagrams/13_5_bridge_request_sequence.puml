@@ -1,0 +1,18 @@
+@startuml
+actor Caller
+participant BridgeClient
+participant ReplicaEndpoint
+participant FlowServer
+participant OpNet
+
+Caller -> BridgeClient : request
+BridgeClient -> ReplicaEndpoint : hello(app_id)
+ReplicaEndpoint -> FlowServer : ingress lookup
+FlowServer --> ReplicaEndpoint : link_ref
+BridgeClient -> ReplicaEndpoint : api_request
+ReplicaEndpoint -> OpNet : inject message
+ReplicaEndpoint -> ReplicaEndpoint : wait for response
+ReplicaEndpoint --> BridgeClient : api_response
+BridgeClient --> Caller : response
+BridgeClient -> ReplicaEndpoint : response_ack (async)
+@enduml

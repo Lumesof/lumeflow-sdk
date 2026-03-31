@@ -1,0 +1,33 @@
+@startuml
+skinparam shadowing false
+left to right direction
+
+rectangle "Lumeflow Control Plane" {
+  [Flow Server\n(semantic authority)] as Flow
+  [Executor Controller] as ExecCtl
+  [Security Controller\n(issuance + authorization)] as SecCtl
+  [AuthZed\n(policy store)] as Authz
+}
+
+rectangle "Executor Runtime Plane" {
+  [cartond\n(runtime mediator)] as Cartond
+  [Operator / Agent\n(workload)] as Operator
+}
+
+database "Secrets / Delegated Identity" as Secrets
+
+Flow --> ExecCtl : launch intent
+ExecCtl --> SecCtl : pre-authorize tuple
+Cartond --> SecCtl : request operator cert
+SecCtl --> Cartond : short-lived operator cert
+Operator --> SecCtl : mTLS as operator identity
+SecCtl --> Authz : evaluate policy
+SecCtl --> Secrets : read secret or mint token
+SecCtl --> Operator : authorized response
+
+note right of SecCtl
+Identity-based trust
+executor identity (runtime)
+operator identity (workload)
+end note
+@enduml

@@ -1,0 +1,11 @@
+@startuml
+actor Client
+participant FlowServer
+database CRDB
+participant "Flow Validator" as Validator
+
+Client -> FlowServer : SubmitJob
+FlowServer -> Validator : validate owner/cluster_id/job_dag
+FlowServer -> CRDB : insert flow_job\nstatus=SUBMITTED
+FlowServer --> Client : job_id
+@enduml

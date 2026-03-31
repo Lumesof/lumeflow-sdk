@@ -1,0 +1,24 @@
+@startuml
+skinparam shadowing false
+
+actor "Flow Server" as Flow
+participant "Executor Controller" as ExecCtl
+participant "Security Controller" as SecCtl
+participant "cartond" as Cartond
+participant "Operator / Agent" as Operator
+
+Flow -> ExecCtl : schedule operator instance\n(cluster/app/operator/instance/executor)
+ExecCtl -> SecCtl : authorize issuance\n(executor + identity tuple)
+ExecCtl -> Cartond : launch operator\nwith identity tuple
+Cartond -> Cartond : generate keypair + CSR
+Cartond -> SecCtl : issue operator cert\n(executor identity + CSR)
+SecCtl -> SecCtl : validate executor identity\nvalidate tuple pre-authorization\nvalidate issuance window
+SecCtl --> Cartond : operator cert\n(short-lived)
+Cartond --> Operator : stage cert/key
+
+== Renewal ==
+
+Cartond -> SecCtl : renew operator cert\n(executor cert + current operator cert + new CSR)
+SecCtl -> SecCtl : require both proofs:\n1) executor/cartond possession\n2) current operator identity possession\n+ issuance still allowed
+SecCtl --> Cartond : renewed operator cert
+@enduml

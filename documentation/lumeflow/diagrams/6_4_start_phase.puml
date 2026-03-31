@@ -1,0 +1,14 @@
+@startuml
+actor Client
+participant FlowServer
+database CRDB
+participant "Executor Controller" as ExecutorController
+
+Client -> FlowServer : StartJob
+FlowServer -> CRDB : claim starter lease\n(update if claimable)
+FlowServer -> FlowServer : build BFS launch levels
+FlowServer -> ExecutorController : launch each level\n(bounded parallelism)
+FlowServer -> CRDB : refresh lease per level
+FlowServer -> CRDB : mark STARTED
+FlowServer --> Client : StartJobResponse
+@enduml

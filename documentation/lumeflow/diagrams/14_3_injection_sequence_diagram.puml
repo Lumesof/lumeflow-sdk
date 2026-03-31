@@ -1,0 +1,13 @@
+@startuml
+actor "Producer Client" as ProducerClient
+participant FlowServer
+participant OpNetManager
+participant Link
+
+ProducerClient -> FlowServer : InjectMessage
+FlowServer -> FlowServer : lookup job + link_ref
+FlowServer -> OpNetManager : InjectMessageIntoLink
+OpNetManager -> Link : deliver to link
+OpNetManager --> FlowServer : Result(ok=...)
+FlowServer --> ProducerClient : InjectMessageResponse
+@enduml

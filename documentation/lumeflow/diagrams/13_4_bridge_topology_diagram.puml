@@ -1,0 +1,18 @@
+@startuml
+left to right direction
+skinparam componentStyle rectangle
+
+actor Caller
+component "RpcOpnetBridgeClient" as BridgeClient
+frame "shard-0" {
+  component "replica-0" as Replica0
+  component "replica-1" as Replica1
+  Replica0 <--> Replica1 : peer coordination
+  Replica0 --> Replica1 : consume dedicated bridge link
+}
+component "Flow Job DG" as Job
+
+Caller --> BridgeClient : rpc request
+BridgeClient --> Replica0 : endpoint stream
+Replica0 --> Job : inject via ingress link ref
+@enduml

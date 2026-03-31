@@ -1,0 +1,10 @@
+@startuml
+hide empty description
+
+[*] --> JOB_STATUS_UNKNOWN : internal/default
+JOB_STATUS_UNKNOWN --> JOB_STATUS_SUBMITTED : SubmitJob
+JOB_STATUS_SUBMITTED --> JOB_STATUS_CREATED : create loop success
+JOB_STATUS_CREATED --> JOB_STATUS_STARTED : StartJob
+JOB_STATUS_STARTED --> JOB_STATUS_CANCEL_PENDING : CancelJob
+JOB_STATUS_CANCEL_PENDING --> JOB_STATUS_CANCELLED : finalize cancel loop
+@enduml

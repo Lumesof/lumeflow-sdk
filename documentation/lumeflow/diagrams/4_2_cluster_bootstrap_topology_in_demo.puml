@@ -1,0 +1,21 @@
+@startuml
+skinparam componentStyle rectangle
+left to right direction
+
+node "Namespace:\nlumeflow-local (or lumeflow-demo)" as NS {
+  package "NodePort Services" {
+    component "Flow Server\n(flow-server)\n:30070" as FlowNp
+    component "OpNet Server\n(opnet-server)\n:30052" as OpNetNp
+    component "Config Query Server\n(config-query-server)\n:30074" as ConfigNp
+    component "RPC OpNet Bridge shard0 r0\n(rpc-opnet-bridge)\n:30080" as BridgeR0
+    component "RPC OpNet Bridge shard0 r1\n(rpc-opnet-bridge)\n:30081" as BridgeR1
+    component "Operator OTEL collector\n:30317" as OTel
+  }
+
+  package "Cluster-Internal Services" {
+    component "Executor Controller\n(executor-controller)\n:50071" as ExecInternal
+    component "Sidecar CAS\n(sidecar-cas)\n:50073" as CasInternal
+    database "Flow DB\n(flow-db)\n:26257" as FlowDb
+  }
+}
+@enduml

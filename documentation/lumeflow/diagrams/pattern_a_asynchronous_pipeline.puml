@@ -1,0 +1,13 @@
+@startuml
+left to right direction
+actor "External Producer" as Producer
+component "Injector Link" as Injector
+component "Operator A" as OpA
+component "Operator B" as OpB
+component "Operator C" as OpC
+
+Producer --> Injector : InjectMessage(job_id, OpNetMessage)
+Injector --> OpA
+OpA --> OpB
+OpB --> OpC
+@enduml

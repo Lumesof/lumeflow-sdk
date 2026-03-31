@@ -1,0 +1,17 @@
+@startuml
+left to right direction
+actor "Endpoint RPC Caller" as RpcCaller
+component "Bridge Replica" as Bridge
+component "Injector Link" as Injector
+component "Operator A" as OpA
+component "Operator B" as OpB
+component "Deadend Link" as Deadend
+
+RpcCaller --> Bridge : RPC request
+Bridge --> Injector
+Injector --> OpA
+OpA --> OpB
+OpB --> Deadend
+Deadend --> Bridge
+Bridge --> RpcCaller : RPC response
+@enduml

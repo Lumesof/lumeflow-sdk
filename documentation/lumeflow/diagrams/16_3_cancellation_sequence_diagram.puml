@@ -1,0 +1,16 @@
+@startuml
+actor Client
+participant FlowServer
+database CRDB
+participant "Executor Controller" as ExecutorController
+participant OpNet
+
+Client -> FlowServer : CancelJob
+FlowServer -> CRDB : set CANCEL_PENDING
+FlowServer --> Client : response
+FlowServer -> FlowServer : create-loop finalize
+FlowServer -> CRDB : delete rows
+FlowServer -> ExecutorController : Destroy execs
+FlowServer -> OpNet : Destroy controller resources
+FlowServer -> CRDB : status=CANCELLED
+@enduml

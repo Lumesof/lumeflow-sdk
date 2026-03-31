@@ -1,0 +1,19 @@
+@startuml
+actor Caller
+participant RpcOpnetBridgeClient as BridgeClient
+participant "Bridge replica endpoint" as BridgeEndpoint
+participant "FlowServer.GetJobIngressLinkRefByAppId" as FlowLookup
+participant "Directed-graph operators" as Operators
+participant "Replica consumer" as ReplicaConsumer
+participant "Bridge commit + peer propagation" as CommitPeer
+
+Caller -> BridgeClient : API request(payload)
+BridgeClient -> BridgeEndpoint : choose shard + active replica session
+BridgeEndpoint -> FlowLookup : resolve ingress_link_ref by app_id
+FlowLookup --> BridgeEndpoint : bridge ingress link ref
+BridgeEndpoint -> Operators : OpNet inject to ingress
+Operators -> ReplicaConsumer : egress bridge message fanout
+ReplicaConsumer --> BridgeClient : api_response over endpoint stream
+BridgeClient --> Caller : return response
+BridgeClient -> CommitPeer : async response_ack
+@enduml
