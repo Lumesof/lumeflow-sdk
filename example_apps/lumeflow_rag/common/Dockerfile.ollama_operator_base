@@ -1,0 +1,38 @@
+FROM ollama/ollama:0.19.0 AS ollama_runtime
+
+FROM us-central1-docker.pkg.dev/lumesof-infra-build/build-docker-registry/lumesof-base@sha256:300a1bb9b245c6305660d472cf52398c56a41b1d818341a9d35fbc9a3048f1e7
+
+USER root
+
+COPY --from=ollama_runtime /usr/bin/ollama /usr/bin/ollama
+COPY --from=ollama_runtime /usr/lib/ollama /usr/lib/ollama
+
+ARG OLLAMA_PRELOAD_MODELS="qwen2.5:3b"
+ENV OLLAMA_HOST=http://127.0.0.1:11434
+ENV OLLAMA_MODELS=/opt/ollama/models
+
+RUN set -eux; \
+    mkdir -p "${OLLAMA_MODELS}"; \
+    /usr/bin/ollama serve > /tmp/ollama-build.log 2>&1 & \
+    ollama_pid="$!"; \
+    ready=""; \
+    for _ in $(seq 1 120); do \
+        if curl -fsS "${OLLAMA_HOST}/api/tags" > /dev/null; then \
+            ready="1"; \
+            break; \
+        fi; \
+        sleep 1; \
+    done; \
+    if [ -z "${ready}" ]; then \
+        cat /tmp/ollama-build.log || true; \
+        exit 1; \
+    fi; \
+    for model in ${OLLAMA_PRELOAD_MODELS}; do \
+        /usr/bin/ollama pull "${model}"; \
+    done; \
+    kill "${ollama_pid}"; \
+    wait "${ollama_pid}" || true; \
+    chown -R appuser:appuser "${OLLAMA_MODELS}"
+
+USER appuser
+WORKDIR /home/appuser

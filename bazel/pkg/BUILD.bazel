@@ -1,0 +1,83 @@
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
+load("//bazel/python:rules.bzl",
+    "lumesof_py_binary",
+)
+
+string_flag(
+    name = "oci_publish_env",
+    build_setting_default = "dev",
+    values = ["dev", "prod"],
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "oci_publish_env_dev",
+    flag_values = {":oci_publish_env": "dev"},
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "oci_publish_env_prod",
+    flag_values = {":oci_publish_env": "prod"},
+    visibility = ["//visibility:public"],
+)
+
+string_flag(
+    name = "oci_dev_repo",
+    build_setting_default = "us-central1-docker.pkg.dev/lumesof-infra-dev/dev-docker-registry",
+    visibility = ["//visibility:public"],
+)
+
+string_flag(
+    name = "oci_prod_repo",
+    build_setting_default = "us-central1-docker.pkg.dev/lumesof-infra-build/build-docker-registry",
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "pkg_tool",
+    srcs = ["pkg_tool.py"],
+    main = "pkg_tool.py",
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "elf_closure",
+    srcs = ["elf_closure.py"],
+    main = "elf_closure.py",
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "depset_tar_tool",
+    srcs = ["depset_tar_tool.py"],
+    main = "depset_tar_tool.py",
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "oci_executor_tool",
+    srcs = ["oci_executor_tool.py"],
+    main = "oci_executor_tool.py",
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "app_image_tool",
+    srcs = ["app_image_tool.py"],
+    main = "app_image_tool.py",
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "status_substitutor",
+    srcs = ["status_substitutor.py"],
+    main = "status_substitutor.py",
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)

@@ -1,0 +1,187 @@
+load(
+    "//bazel/lore:rules.bzl",
+    "lore_graph",
+    "lore_graph_publish",
+    "lore_operator",
+    "lore_operator_publish",
+)
+load("//bazel/pkg:rules.bzl", "lumesof_oci_image")
+load("//bazel/python:rules.bzl", "lumesof_pip_install", "lumesof_py_binary", "lumesof_py_library", "lumesof_py_test", "lumesof_req_lock")
+
+SDK_PYTHON_ADDITIONAL_INDEXES = [
+    "https://us-central1-python.pkg.dev/lumesof-sdk-infra/sdk-python-registry/simple/",
+]
+
+exports_files([
+    "extract_graph.py",
+    "extract_ports.py",
+    "rules.bzl",
+])
+
+lumesof_py_library(
+    name = "base_publisher_lib",
+    srcs = ["base_publisher.py"],
+    visibility = ["//visibility:public"],
+)
+
+lumesof_req_lock(
+    name = "lore_requirements",
+    requirements = ["requirements.txt"],
+    additional_indexes = SDK_PYTHON_ADDITIONAL_INDEXES,
+    tags = ["manual"],
+)
+
+lumesof_pip_install(
+    name = "lore_site_packages",
+    lockfile = "requirements.lock",
+    additional_indexes = SDK_PYTHON_ADDITIONAL_INDEXES,
+    tags = ["manual"],
+)
+
+lumesof_py_binary(
+    name = "extract_ports",
+    srcs = ["extract_ports.py"],
+    main = "extract_ports.py",
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "extract_graph",
+    srcs = ["extract_graph.py"],
+    main = "extract_graph.py",
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "validate_semver",
+    srcs = ["validate_semver.py"],
+    main = "validate_semver.py",
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "build_labels",
+    srcs = ["build_labels.py"],
+    main = "build_labels.py",
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "generate_image_descriptor_lib",
+    srcs = ["generate_image_descriptor_lib.py"],
+    main = "generate_image_descriptor_lib.py",
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "generate_graph_publisher_lib",
+    srcs = ["generate_graph_publisher_lib.py"],
+    main = "generate_graph_publisher_lib.py",
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_test(
+    name = "extract_ports_test",
+    srcs = ["tests/extract_ports_test.py"],
+    main = "tests/extract_ports_test.py",
+    data = [":extract_ports"],
+    std_deps = ["@rules_python//python/runfiles"],
+)
+
+lumesof_py_test(
+    name = "extract_graph_test",
+    srcs = ["tests/extract_graph_test.py"],
+    main = "tests/extract_graph_test.py",
+    data = [":extract_graph"],
+    std_deps = ["@rules_python//python/runfiles"],
+)
+
+lumesof_py_test(
+    name = "validate_semver_test",
+    srcs = ["tests/validate_semver_test.py"],
+    main = "tests/validate_semver_test.py",
+    data = [":validate_semver"],
+    std_deps = ["@rules_python//python/runfiles"],
+)
+
+lumesof_py_test(
+    name = "build_labels_test",
+    srcs = ["tests/build_labels_test.py"],
+    main = "tests/build_labels_test.py",
+    data = [":build_labels"],
+    std_deps = ["@rules_python//python/runfiles"],
+)
+
+lumesof_py_binary(
+    name = "fixture_labeled_binary",
+    srcs = ["tests/fixture_labeled_binary.py"],
+    main = "tests/fixture_labeled_binary.py",
+    python_version = "PY3",
+)
+
+lumesof_oci_image(
+    name = "fixture_labeled_image",
+    binary = ":fixture_labeled_binary",
+    labels = {
+        "lore.publisher": "lumesof",
+        "lore.slug": "fixture-operator",
+        "lore.version": "1.2.3",
+    },
+)
+
+lumesof_py_library(
+    name = "fixture_operator_lib",
+    srcs = ["tests/fixture_operator.py"],
+    requirements = ["requirements.txt"],
+)
+
+lumesof_py_binary(
+    name = "fixture_operator_bin",
+    srcs = ["tests/fixture_operator.py"],
+    main = "tests/fixture_operator.py",
+    lumesof_deps = [":fixture_operator_lib"],
+    pip_install = ":lore_site_packages",
+)
+
+lore_operator(
+    name = "fixture_operator",
+    binary = ":fixture_operator_bin",
+    operator_src = ":fixture_operator_lib",
+    operator_class = "FixtureOperator",
+    publisher = "lumesof",
+    slug = "fixture-operator",
+    description = "Fixture operator for LORe publish smoke coverage",
+    category = "testing",
+    version = "1.2.3",
+    visibility = "private",
+    target_visibility = ["//visibility:private"],
+    lumeflow_min_version = "0.1.0",
+    changelog = "Initial fixture release",
+)
+
+lore_operator_publish(
+    name = "fixture_operator_publish",
+    operator = ":fixture_operator",
+)
+
+lore_graph(
+    name = "fixture_graph",
+    graph = "tests/fixture_graph.py",
+    graph_class = "FixtureGraph",
+    requirements = ["requirements.txt"],
+    operators = [
+        ":fixture_operator",
+    ],
+    target_visibility = ["//visibility:private"],
+)
+
+lore_graph_publish(
+    name = "fixture_graph_publish",
+    graph = ":fixture_graph",
+)

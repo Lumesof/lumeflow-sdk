@@ -1,0 +1,111 @@
+load("@rules_pkg//:pkg.bzl", "pkg_tar")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("//bazel/python:rules.bzl",
+    "lumesof_req_lock",
+    "lumesof_pip_install",
+    "lumesof_py_binary",
+    "lumesof_py_library",
+    "lumesof_py_test",
+    "lumesof_py_wheel",
+)
+
+# Globally visible files
+exports_files(
+    srcs = ["artifacts/pytool_tar.tgz"],
+    visibility = ["//visibility:public"],
+)
+
+# Make pip-tools available to the tool chain
+lumesof_req_lock(
+    name = "pytool_requirements",
+    requirements = ["requirements.txt"],
+    tags = ["manual"],
+)
+
+lumesof_pip_install(
+    name = "pytool_site_packages",
+    lockfile = ":pytool_requirements.lock", # Do not depend on the requirements_lock
+                                     # rule. Run that rule manually, and check
+                                     # the generated lock file into the repo
+                                     # to keep things hermetic.
+    tags = ["manual"],
+)
+
+lumesof_py_binary(
+    name = "pytool",
+    srcs = ["pytool.py"],
+    main = "pytool.py",
+    pip_install = ":pytool_site_packages",
+)
+
+lumesof_py_library(
+    name = "pytool_lib",
+    srcs = ["pytool.py"],
+    requirements = ["requirements.txt"],
+)
+
+lumesof_py_wheel(
+    name = "pytool_wheel",
+    dep = ":pytool_lib",
+    distribution = "lumesof-pytool",
+    version = "0.0.1",
+    validate_resolve = True,
+    tags = ["manual"],
+)
+
+pkg_tar(
+    name = "pytool_tar",
+    srcs = [":pytool"],
+    include_runfiles = True,
+    package_dir = "pytool",
+    extension = ".tgz",
+    strip_prefix = ".",
+    mode = "0755",
+)
+
+# --- Test wheel targets ---
+
+lumesof_py_library(
+    name = "test_wheel_lib",
+    srcs = ["test_wheel_lib.py"],
+)
+
+lumesof_py_wheel(
+    name = "test_wheel",
+    dep = ":test_wheel_lib",
+    distribution = "lumesof-test-wheel",
+    version = "0.0.1",
+    tags = ["manual"],
+)
+
+lumesof_req_lock(
+    name = "test_wheel_requirements",
+    requirements = ["tests/test_wheel_requirements.txt"],
+    wheels = [":test_wheel"],
+    tags = ["manual"],
+)
+
+lumesof_pip_install(
+    name = "test_wheel_site_packages",
+    lockfile = "tests/test_wheel_requirements.lock",
+    wheels = [":test_wheel"],
+)
+
+lumesof_py_test(
+    name = "pip_install_wheels_test",
+    srcs = ["tests/pip_install_wheels_test.py"],
+    main = "tests/pip_install_wheels_test.py",
+    pip_install = ":test_wheel_site_packages",
+)
+
+sh_binary(
+    name = "lock_runner",
+    srcs = ["lock_runner.sh"],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "install_runner",
+    srcs = ["install_runner.sh"],
+    visibility = ["//visibility:public"],
+)

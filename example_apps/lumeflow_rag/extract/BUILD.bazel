@@ -1,0 +1,325 @@
+load("@rules_oci//oci:defs.bzl", "oci_load")
+load(
+    "//bazel/pkg:rules.bzl",
+    "lumesof_oci_image",
+    "lumesof_oci_image_publish",
+)
+load("//bazel/lore:rules.bzl", "lore_graph", "lore_graph_publish", "lore_operator")
+load("//bazel/python:rules.bzl", "lumesof_pip_install", "lumesof_py_binary", "lumesof_py_library", "lumesof_py_test", "lumesof_req_lock")
+
+lore_graph(
+    name = "sync_agent_light_graph",
+    graph = "agent_flow_light.py",
+    graph_class = "SyncAgentLightGraph",
+    requirements = [
+        "//example_apps/lumeflow_rag:requirements.txt",
+    ],
+    lumesof_deps = [
+        "//example_apps/lumeflow_rag/common:rag_uri",
+    ],
+    operators = [
+        ":chromadb_retriever_operator_nomic_embed_text_v1_5",
+        ":llm_agent_operator_qwen25_1_5b",
+    ],
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+    ],
+    target_visibility = ["//visibility:public"],
+)
+
+lore_graph_publish(
+    name = "sync_agent_light_graph_publish",
+    graph = ":sync_agent_light_graph",
+)
+
+lumesof_req_lock(
+    name = "llm_agent_operator_requirements",
+    requirements = ["llm_agent_operator_requirements.txt"],
+    tags = ["manual"],
+)
+
+lumesof_pip_install(
+    name = "llm_agent_operator_site_packages",
+    lockfile = "llm_agent_operator_requirements.lock",
+    tags = ["manual"],
+)
+
+lumesof_req_lock(
+    name = "chromadb_retriever_operator_requirements",
+    requirements = ["chromadb_retriever_operator_requirements.txt"],
+    tags = ["manual"],
+)
+
+lumesof_pip_install(
+    name = "chromadb_retriever_operator_site_packages",
+    lockfile = "chromadb_retriever_operator_requirements.lock",
+    tags = ["manual"],
+)
+
+lumesof_py_binary(
+    name = "chat_agent_light_bin",
+    srcs = ["chat_agent_light_main.py"],
+    main = "chat_agent_light_main.py",
+    lumesof_deps = [
+        ":sync_agent_light_graph",
+        "//example_apps/lumeflow_rag/common:rag_uri",
+    ],
+    pip_install = "//example_apps/lumeflow_rag:rag_site_packages",
+)
+
+lumesof_py_test(
+    name = "chat_agent_light_main_test",
+    srcs = [
+        "chat_agent_light_main.py",
+        "tests/chat_agent_light_main_test.py",
+    ],
+    main = "tests/chat_agent_light_main_test.py",
+    lumesof_deps = [
+        ":sync_agent_light_graph",
+        "//example_apps/lumeflow_rag/common:rag_uri",
+    ],
+    pip_install = "//example_apps/lumeflow_rag:rag_site_packages",
+)
+
+lumesof_py_test(
+    name = "agent_flow_light_test",
+    srcs = ["tests/agent_flow_light_test.py"],
+    main = "tests/agent_flow_light_test.py",
+    lumesof_deps = [":sync_agent_light_graph"],
+    pip_install = "//example_apps/lumeflow_rag:rag_site_packages",
+)
+
+lumesof_py_library(
+    name = "llm_agent_operator",
+    srcs = ["llm_agent_operator.py"],
+    lumesof_deps = [
+        "//example_apps/lumeflow_rag/common:ollama_model_discovery",
+    ],
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_library(
+    name = "chromadb_retriever_operator",
+    srcs = ["chromadb_retriever_operator.py"],
+    lumesof_deps = [
+        "//example_apps/lumeflow_rag/common:ollama_model_discovery",
+    ],
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "llm_agent_operator_bin",
+    srcs = ["llm_agent_operator.py"],
+    main = "llm_agent_operator.py",
+    pip_install = ":llm_agent_operator_site_packages",
+    lumesof_deps = [
+        ":llm_agent_operator",
+    ],
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+    ],
+)
+
+lumesof_oci_image(
+    name = "llm_agent_operator_qwen25_1_5b_image",
+    binary = ":llm_agent_operator_bin",
+    base = "@ollama_operator_base_image_qwen25_1_5b",
+)
+
+genrule(
+    name = "llm_agent_operator_test_repo_tags",
+    outs = ["llm_agent_operator_test_repo_tags.txt"],
+    cmd = "printf 'localhost/lumeflow-llm-agent:latest\\n' > $@",
+)
+
+oci_load(
+    name = "llm_agent_operator_test_load",
+    image = ":llm_agent_operator_qwen25_1_5b_image",
+    repo_tags = ":llm_agent_operator_test_repo_tags",
+)
+
+lumesof_oci_image_publish(
+    name = "llm_agent_operator_qwen25_1_5b_publish",
+    image = ":llm_agent_operator_qwen25_1_5b_image",
+)
+
+lore_operator(
+    name = "llm_agent_operator_qwen25_1_5b",
+    binary = ":llm_agent_operator_bin",
+    operator_src = ":llm_agent_operator",
+    operator_class = "LlmAgentOperator",
+    publisher = "lumesof",
+    slug = "llm-agent-qwen25-1-5b-light",
+    description = "LLM agent operator for sync light RAG loop",
+    category = "retrieval-augmented-generation",
+    version = "0.1.0",
+    visibility = "private",
+    target_visibility = ["//visibility:public"],
+    use_default_registry = True,
+    lumeflow_min_version = "0.1.0",
+    changelog = "Initial descriptor publish for light sync agent DAG",
+    python_import_path = "example_apps.lumeflow_rag.extract.image_descriptors.llm_agent_operator_qwen25_1_5b",
+    oci_base = "@ollama_operator_base_image_qwen25_1_5b",
+    tags = ["manual"],
+)
+
+lumesof_oci_image(
+    name = "llm_agent_operator_qwen25_3b_image",
+    binary = ":llm_agent_operator_bin",
+    base = "@ollama_operator_base_image_qwen25_3b",
+)
+
+lumesof_oci_image_publish(
+    name = "llm_agent_operator_qwen25_3b_publish",
+    image = ":llm_agent_operator_qwen25_3b_image",
+)
+
+lumesof_oci_image(
+    name = "llm_agent_operator_qwen25_7b_image",
+    binary = ":llm_agent_operator_bin",
+    base = "@ollama_operator_base_image_qwen25_7b",
+)
+
+lumesof_oci_image_publish(
+    name = "llm_agent_operator_qwen25_7b_publish",
+    image = ":llm_agent_operator_qwen25_7b_image",
+)
+
+alias(
+    name = "llm_agent_operator_image",
+    actual = ":llm_agent_operator_qwen25_3b_image",
+)
+
+lumesof_oci_image_publish(
+    name = "llm_agent_operator_publish",
+    image = ":llm_agent_operator_qwen25_3b_image",
+)
+
+lumesof_py_binary(
+    name = "chromadb_retriever_operator_bin",
+    srcs = ["chromadb_retriever_operator.py"],
+    main = "chromadb_retriever_operator.py",
+    pip_install = ":chromadb_retriever_operator_site_packages",
+    lumesof_deps = [
+        ":chromadb_retriever_operator",
+    ],
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+    ],
+)
+
+lumesof_oci_image(
+    name = "chromadb_retriever_operator_nomic_embed_text_v1_5_image",
+    binary = ":chromadb_retriever_operator_bin",
+    base = "@ollama_operator_base_image_nomic_embed_text_v1_5",
+)
+
+genrule(
+    name = "chromadb_retriever_operator_test_repo_tags",
+    outs = ["chromadb_retriever_operator_test_repo_tags.txt"],
+    cmd = "printf 'localhost/lumeflow-chromadb-retriever:latest\\n' > $@",
+)
+
+oci_load(
+    name = "chromadb_retriever_operator_test_load",
+    image = ":chromadb_retriever_operator_nomic_embed_text_v1_5_image",
+    repo_tags = ":chromadb_retriever_operator_test_repo_tags",
+)
+
+lumesof_oci_image_publish(
+    name = "chromadb_retriever_operator_nomic_embed_text_v1_5_publish",
+    image = ":chromadb_retriever_operator_nomic_embed_text_v1_5_image",
+)
+
+lore_operator(
+    name = "chromadb_retriever_operator_nomic_embed_text_v1_5",
+    binary = ":chromadb_retriever_operator_bin",
+    operator_src = ":chromadb_retriever_operator",
+    operator_class = "ChromaDbRetrieverOperator",
+    publisher = "lumesof",
+    slug = "chromadb-retriever-nomic-embed-text-v1-5-light",
+    description = "ChromaDB retriever operator for sync light RAG loop",
+    category = "retrieval-augmented-generation",
+    version = "0.1.0",
+    visibility = "private",
+    target_visibility = ["//visibility:public"],
+    use_default_registry = True,
+    lumeflow_min_version = "0.1.0",
+    changelog = "Initial descriptor publish for light sync agent DAG",
+    python_import_path = "example_apps.lumeflow_rag.extract.image_descriptors.chromadb_retriever_operator_nomic_embed_text_v1_5",
+    oci_base = "@ollama_operator_base_image_nomic_embed_text_v1_5",
+    tags = ["manual"],
+)
+
+lumesof_oci_image(
+    name = "chromadb_retriever_operator_mxbai_embed_large_image",
+    binary = ":chromadb_retriever_operator_bin",
+    base = "@ollama_operator_base_image_mxbai_embed_large",
+)
+
+lumesof_oci_image_publish(
+    name = "chromadb_retriever_operator_mxbai_embed_large_publish",
+    image = ":chromadb_retriever_operator_mxbai_embed_large_image",
+)
+
+lumesof_oci_image(
+    name = "chromadb_retriever_operator_nomic_embed_text_v2_moe_image",
+    binary = ":chromadb_retriever_operator_bin",
+    base = "@ollama_operator_base_image_nomic_embed_text_v2_moe",
+)
+
+lumesof_oci_image_publish(
+    name = "chromadb_retriever_operator_nomic_embed_text_v2_moe_publish",
+    image = ":chromadb_retriever_operator_nomic_embed_text_v2_moe_image",
+)
+
+alias(
+    name = "chromadb_retriever_operator_image",
+    actual = ":chromadb_retriever_operator_nomic_embed_text_v1_5_image",
+)
+
+lumesof_oci_image_publish(
+    name = "chromadb_retriever_operator_publish",
+    image = ":chromadb_retriever_operator_nomic_embed_text_v1_5_image",
+)
+
+lumesof_py_test(
+    name = "chromadb_retriever_operator_cartond_test",
+    srcs = ["tests/chromadb_retriever_operator_cartond_test.py"],
+    data = [
+        ":chromadb_retriever_operator_test_load",
+        "//lumecode/lumeflow/runtime/v1/test_utils:standalone_operator_sidecar_app_image",
+    ],
+    main = "tests/chromadb_retriever_operator_cartond_test.py",
+    pip_install = ":chromadb_retriever_operator_site_packages",
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+        "@rules_python//python/runfiles",
+    ],
+    tags = ["manual"],
+    timeout = "long",
+)
+
+lumesof_py_test(
+    name = "llm_agent_operator_cartond_test",
+    srcs = ["tests/llm_agent_operator_cartond_test.py"],
+    data = [
+        ":llm_agent_operator_test_load",
+        "//lumecode/lumeflow/runtime/v1/test_utils:standalone_operator_sidecar_app_image",
+    ],
+    main = "tests/llm_agent_operator_cartond_test.py",
+    pip_install = ":llm_agent_operator_site_packages",
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+        "@rules_python//python/runfiles",
+    ],
+    size = "large",
+    tags = ["manual"],
+    timeout = "long",
+)

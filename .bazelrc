@@ -1,0 +1,49 @@
+### 1. HERMETIC ENVIRONMENT
+# Discard all host environment variables by default
+build --incompatible_strict_action_env
+
+# Pin the essential environment. 
+# Includes /snap/bin for docker-credential-gcloud.
+build --action_env=PATH=/usr/local/bin:/usr/bin:/bin:/snap/bin
+build --action_env=HOME=/tmp
+build --action_env=LANG=en_US.UTF-8
+build --action_env=LC_ALL=en_US.UTF-8
+common --repo_env=DOCKER_CONFIG=/lumesof/docker
+
+### 2. DETERMINISTIC WORKSPACE STATUS
+# Relative path ensures the command string is identical for all users
+build --workspace_status_command=${PWD}/workspace_status.sh
+build:stamp --stamp
+
+### 3. TOOLCHAIN & REMOTE EXECUTION
+build --jobs=128
+build --incompatible_autoload_externally=cc_library,cc_binary,cc_test,cc_import
+
+# Standardized JDK for cross-machine consistency
+build --java_runtime_version=remotejdk_17
+build --tool_java_runtime_version=remotejdk_17
+
+### 4. CACHE OPTIMIZATION
+build --guard_against_concurrent_changes
+
+### 5. TEST EXECUTION
+# Keep test actions local while allowing non-test build actions to use remote
+# execution.
+test --test_strategy=standalone
+test --remote_upload_local_results=false
+test --strategy=TestRunner=local
+
+### 6. TLS/CRYPTO BACKEND STANDARDIZATION
+# Default to OpenSSL in gRPC so it matches the repository crypto stack.
+common --@grpc//third_party:grpc_use_openssl=true
+
+# Explicit backend toggles:
+# - --config=grpc_openssl   (default behavior)
+# - --config=grpc_boringssl (opt-in override)
+common:grpc_openssl --@grpc//third_party:grpc_use_openssl=true
+common:grpc_boringssl --@grpc//third_party:grpc_use_openssl=false
+
+### 7. OCI PUBLISH DEFAULTS
+# OCI publish rules consume these as implicit build-setting inputs.
+build --//bazel/pkg:oci_dev_repo=
+build --//bazel/pkg:oci_prod_repo=

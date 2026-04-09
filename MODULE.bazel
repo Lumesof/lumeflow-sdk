@@ -1,0 +1,110 @@
+module(
+    name = "lumeflow-sdk",  # Use your actual monorepo name
+    version = "0.0.1",
+    compatibility_level = 1,
+)
+
+bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")
+
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
+
+bazel_dep(name = "grpc", version = "1.76.0.bcr.1")
+
+bazel_dep(name = "openssl", version = "3.5.5.bcr.0")
+
+bazel_dep(name = "platforms", version = "1.0.0")
+
+bazel_dep(name = "protobuf", version = "33.5")
+
+bazel_dep(name = "rules_go", version = "0.59.0")
+
+bazel_dep(name = "rules_multirun", version = "0.13.0")
+
+bazel_dep(name = "rules_oci", version = "2.2.7")
+
+bazel_dep(name = "rules_pkg", version = "1.2.0")
+
+bazel_dep(name = "rules_proto", version = "7.1.0")
+
+bazel_dep(name = "rules_proto_grpc_python", version = "5.3.1")
+
+bazel_dep(name = "rules_python", version = "1.8.4")
+
+bazel_dep(name = "rules_shell", version = "0.6.1")
+
+single_version_override(module_name = "grpc", version = "1.76.0.bcr.1")
+
+single_version_override(module_name = "openssl", version = "3.5.5.bcr.0")
+
+register_toolchains(
+    "//bazel/sys:host_tools_tc_linux_x86_64",
+)
+
+oci_external = use_extension("@rules_oci//oci:extensions.bzl", "oci")
+
+oci_external.pull(
+    name = "lumesof_base_image",
+    digest = "sha256:300a1bb9b245c6305660d472cf52398c56a41b1d818341a9d35fbc9a3048f1e7",
+    image = "us-central1-docker.pkg.dev/lumesof-infra-build/build-docker-registry/lumesof-base",
+    platforms = ["linux/amd64"],
+)
+
+oci_external.pull(
+    name = "ollama_operator_base_image_qwen25_1_5b",
+    image = "us-central1-docker.pkg.dev/lumesof-infra-dev/dev-docker-registry/lumesof-ollama-operator-base-qwen2.5-1.5b",
+    platforms = ["linux/amd64"],
+    digest = "sha256:0c6fd627c8e7f8702c7b1a82725075a92177af98d19a3983768ef7bcacb0ec8a",
+)
+
+oci_external.pull(
+    name = "ollama_operator_base_image_qwen25_3b",
+    image = "us-central1-docker.pkg.dev/lumesof-infra-dev/dev-docker-registry/lumesof-ollama-operator-base-qwen2.5-3b",
+    platforms = ["linux/amd64"],
+    digest = "sha256:fbedab47ff5983fea16f8b8ce828098065256a7172a02dc6fb446ca90bbbc692",
+)
+
+oci_external.pull(
+    name = "ollama_operator_base_image_qwen25_7b",
+    image = "us-central1-docker.pkg.dev/lumesof-infra-dev/dev-docker-registry/lumesof-ollama-operator-base-qwen2.5-7b",
+    platforms = ["linux/amd64"],
+    digest = "sha256:8b071c110cbd5c7557db16ab5092def8f3f2d6c964ceae4eec753db7de4fb23c",
+)
+
+oci_external.pull(
+    name = "ollama_operator_base_image_nomic_embed_text_v1_5",
+    image = "us-central1-docker.pkg.dev/lumesof-infra-dev/dev-docker-registry/lumesof-ollama-operator-base-nomic-embed-text-v1.5",
+    platforms = ["linux/amd64"],
+    digest = "sha256:8412e84be3125e8d5d76598c2c0126e3c84156844df42f496c7312e89a60140a",
+)
+
+oci_external.pull(
+    name = "ollama_operator_base_image_mxbai_embed_large",
+    image = "us-central1-docker.pkg.dev/lumesof-infra-dev/dev-docker-registry/lumesof-ollama-operator-base-mxbai-embed-large",
+    platforms = ["linux/amd64"],
+    digest = "sha256:8fd1f2e3618f498c92affb3a4e1fe49eea65b1e9c038ae51c0d630c42c315272",
+)
+
+oci_external.pull(
+    name = "ollama_operator_base_image_nomic_embed_text_v2_moe",
+    image = "us-central1-docker.pkg.dev/lumesof-infra-dev/dev-docker-registry/lumesof-ollama-operator-base-nomic-embed-text-v2-moe",
+    platforms = ["linux/amd64"],
+    digest = "sha256:c4342667c77edda1f057b8803eea9905bda62a4c2513f2d8c90101061482427e",
+)
+
+use_repo(
+    oci_external,
+    "lumesof_base_image",
+    "lumesof_base_image_linux_amd64",
+    "ollama_operator_base_image_qwen25_1_5b",
+    "ollama_operator_base_image_qwen25_1_5b_linux_amd64",
+    "ollama_operator_base_image_qwen25_3b",
+    "ollama_operator_base_image_qwen25_3b_linux_amd64",
+    "ollama_operator_base_image_qwen25_7b",
+    "ollama_operator_base_image_qwen25_7b_linux_amd64",
+    "ollama_operator_base_image_nomic_embed_text_v1_5",
+    "ollama_operator_base_image_nomic_embed_text_v1_5_linux_amd64",
+    "ollama_operator_base_image_mxbai_embed_large",
+    "ollama_operator_base_image_mxbai_embed_large_linux_amd64",
+    "ollama_operator_base_image_nomic_embed_text_v2_moe",
+    "ollama_operator_base_image_nomic_embed_text_v2_moe_linux_amd64",
+)

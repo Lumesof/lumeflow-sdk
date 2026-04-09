@@ -1,0 +1,5 @@
+pip==24.0
+pip-tools==7.4.1
+setuptools==80.9.0
+wheel==0.42.0
+build==1.2.1

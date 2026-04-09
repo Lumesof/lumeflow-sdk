@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package example_apps.operators;
+
+import "google/protobuf/struct.proto";
+
+enum StructureExtractorStrategy {
+  STRUCTURE_EXTRACTOR_STRATEGY_FAST = 0;
+}
+
+enum EmbeddingModel {
+  EMBEDDING_MODEL_UNSPECIFIED = 0;
+  EMBEDDING_MODEL_ALL_MINILM_L6_V2 = 1;
+}
+
+message StructureExtractorRequest {
+  // Input message to the StructureExtractorOperator "extract" port.
+  string uri = 1;
+  bool infer_tables = 2;
+  StructureExtractorStrategy strategy = 3;
+  bool extract_images = 4;
+  int32 batch_size = 5;
+  EmbeddingModel embedding_model = 6;
+  string rag_uri = 7;
+}
+
+message ChunkRequest {
+  repeated DocumentProto documents = 1;
+  int32 batch_size = 2;
+  EmbeddingModel embedding_model = 3;
+  string rag_uri = 4;
+}
+
+// Store-ready request containing documents and metadata.
+message StoreRequest {
+  repeated DocumentProto documents = 1;
+  EmbeddingModel embedding_model = 2;
+  string rag_uri = 3;
+}
+
+message AgentRequest {
+  string rag_uri = 1;
+  string serving_uri = 2;
+  string prompt = 3;
+  reserved 4;
+  reserved "model";
+  string conversation_id = 5;
+  string response_id = 6;
+}
+
+message ToolCallRequest {
+  string request_id = 1;
+  string conversation_id = 2;
+  string rag_uri = 3;
+  string serving_uri = 4;
+  string prompt = 5;
+  string model = 6;
+  string response_id = 7;
+  string endpoint = 8;
+  repeated google.protobuf.Struct messages = 9;
+  repeated google.protobuf.Struct tool_calls = 10;
+}
+
+message RetrievalCommandRequest {
+  string request_id = 1;
+  string conversation_id = 2;
+  string rag_uri = 3;
+  string serving_uri = 4;
+  string prompt = 5;
+  string model = 6;
+  string response_id = 7;
+  string endpoint = 8;
+  repeated google.protobuf.Struct messages = 9;
+  repeated google.protobuf.Struct tool_calls = 10;
+}
+
+message EnrichedRequest {
+  string request_id = 1;
+  string conversation_id = 2;
+  string rag_uri = 3;
+  string serving_uri = 4;
+  string prompt = 5;
+  string model = 6;
+  string response_id = 7;
+  string endpoint = 8;
+  repeated google.protobuf.Struct messages = 9;
+}
+
+message RespondRequest {
+  string conversation_id = 1;
+  string response_id = 2;
+  string prompt = 3;
+  string response = 4;
+}
+
+message DocumentProto {
+  // Raw text content of the element/document.
+  string text = 1;
+
+  // Metadata map; includes any available ids/categories/types.
+  // Keys may include: id, type, category, filename, url, page_number, parent_id, etc.
+  map<string, string> metadata = 2;
+}

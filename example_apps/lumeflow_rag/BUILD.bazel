@@ -1,0 +1,25 @@
+load("//bazel/python:rules.bzl", "lumesof_pip_install", "lumesof_req_lock")
+
+exports_files(
+    srcs = [
+        "requirements.txt",
+        "rag_requirements.lock",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+lumesof_req_lock(
+    name = "rag_requirements",
+    requirements = [
+        ":requirements.txt",
+    ],
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+)
+
+lumesof_pip_install(
+    name = "rag_site_packages",
+    lockfile = "rag_requirements.lock",
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+)

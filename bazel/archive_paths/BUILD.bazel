@@ -1,0 +1,4 @@
+exports_files(
+    ["archive_paths_info.bzl"],
+    visibility = ["//visibility:public"],
+)

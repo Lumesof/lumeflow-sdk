@@ -1,0 +1,85 @@
+load("@protobuf//bazel:proto_library.bzl", "proto_library")
+load("@rules_proto_grpc_python//:defs.bzl", "python_proto_library")
+load("//bazel/python:rules.bzl", "lumesof_py_library", "lumesof_py_test")
+
+exports_files(
+    srcs = [
+        "build_ollama_operator_base_image.sh",
+        "Dockerfile.ollama_operator_base",
+        "Dockerfile.ollama_operator_base_mxbai_embed_large",
+        "Dockerfile.ollama_operator_base_nomic_embed_text_v1_5",
+        "Dockerfile.ollama_operator_base_nomic_embed_text_v2_moe",
+        "Dockerfile.ollama_operator_base_qwen25_1_5b",
+        "Dockerfile.ollama_operator_base_qwen25_3b",
+        "Dockerfile.ollama_operator_base_qwen25_7b",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+proto_library(
+    name = "operators_proto",
+    srcs = ["operators.proto"],
+    deps = [
+        "@protobuf//:struct_proto",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+python_proto_library(
+    name = "operators_py_pb2",
+    protos = [
+        ":operators_proto",
+        "@protobuf//:struct_proto",
+    ],
+    legacy_create_init = False,
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_library(
+    name = "collection_naming",
+    srcs = ["collection_naming.py"],
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_library(
+    name = "rag_uri",
+    srcs = ["rag_uri.py"],
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_library(
+    name = "payload_contracts",
+    srcs = ["payload_contracts.py"],
+    lumesof_deps = [
+        ":collection_naming",
+        ":rag_uri",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_library(
+    name = "ollama_model_discovery",
+    srcs = ["ollama_model_discovery.py"],
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_test(
+    name = "collection_naming_test",
+    srcs = ["tests/collection_naming_test.py"],
+    main = "tests/collection_naming_test.py",
+    lumesof_deps = [":collection_naming"],
+)
+
+lumesof_py_test(
+    name = "payload_contracts_test",
+    srcs = ["tests/payload_contracts_test.py"],
+    main = "tests/payload_contracts_test.py",
+    lumesof_deps = [":payload_contracts"],
+)
+
+lumesof_py_test(
+    name = "rag_uri_test",
+    srcs = ["tests/rag_uri_test.py"],
+    main = "tests/rag_uri_test.py",
+    lumesof_deps = [":rag_uri"],
+)

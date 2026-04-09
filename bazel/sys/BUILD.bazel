@@ -1,0 +1,35 @@
+# BUILD.bazel
+
+load("//bazel/sys:toolchain.bzl", "system_archive_paths", "system_toolchain")
+
+# Public type that rules can request.
+toolchain_type(
+    name = "system_toolchain_type",
+    visibility = ["//visibility:public"],
+)
+
+# Instantiate the tool paths from your CAS shard.
+system_toolchain(
+    name = "host_tools_linux_x86_64",
+    sha256 = "d587e09765329247af67f72996416f64cd3d725f7a9a0451ed5cac679bb2abc2",
+    cas_root = "/lumesof/build-infra/ro-repos/repo-cas",
+)
+
+system_archive_paths(
+    name = "host_tools_linux_x86_64_archive_paths",
+    sha256 = "d587e09765329247af67f72996416f64cd3d725f7a9a0451ed5cac679bb2abc2",
+    cas_root = "/lumesof/build-infra/ro-repos/repo-cas",
+    visibility = ["//visibility:public"],
+)
+
+# Wrap as a toolchain for Linux x86_64 exec platform.
+toolchain(
+    name = "host_tools_tc_linux_x86_64",
+    toolchain_type = ":system_toolchain_type",
+    toolchain = ":host_tools_linux_x86_64",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    visibility = ["//visibility:public"],
+)

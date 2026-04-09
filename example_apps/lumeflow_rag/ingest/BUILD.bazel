@@ -1,0 +1,410 @@
+load("@rules_oci//oci:defs.bzl", "oci_load")
+load(
+    "//bazel/pkg:rules.bzl",
+    "lumesof_oci_image",
+    "lumesof_oci_image_publish",
+)
+load("//bazel/lore:rules.bzl", "lore_graph", "lore_graph_publish", "lore_operator", "lore_operator_publish")
+load("//bazel/python:rules.bzl", "lumesof_pip_install", "lumesof_py_binary", "lumesof_py_library", "lumesof_py_test", "lumesof_req_lock")
+
+lore_graph(
+    name = "async_ingest_light_graph",
+    graph = "ingest_flow_light.py",
+    graph_class = "AsyncIngestLightGraph",
+    requirements = [
+        "//example_apps/lumeflow_rag:requirements.txt",
+    ],
+    lumesof_deps = [
+        "//example_apps/lumeflow_rag/common:rag_uri",
+    ],
+    operators = [
+        ":chromadb_indexer_operator_nomic_embed_text_v1_5",
+        ":chunker_operator",
+        ":structured_extractor_operator",
+    ],
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+    ],
+    target_visibility = ["//visibility:public"],
+)
+
+lore_graph_publish(
+    name = "async_ingest_light_graph_publish",
+    graph = ":async_ingest_light_graph",
+)
+
+lumesof_req_lock(
+    name = "structured_extractor_operator_requirements",
+    requirements = ["structured_extractor_operator_requirements.txt"],
+    tags = ["manual"],
+)
+
+lumesof_pip_install(
+    name = "structured_extractor_operator_site_packages",
+    lockfile = "structured_extractor_operator_requirements.lock",
+    tags = ["manual"],
+)
+
+lumesof_req_lock(
+    name = "chunker_operator_requirements",
+    requirements = ["chunker_operator_requirements.txt"],
+    tags = ["manual"],
+)
+
+lumesof_pip_install(
+    name = "chunker_operator_site_packages",
+    lockfile = "chunker_operator_requirements.lock",
+    tags = ["manual"],
+)
+
+lumesof_req_lock(
+    name = "chromadb_indexer_operator_requirements",
+    requirements = ["chromadb_indexer_operator_requirements.txt"],
+    tags = ["manual"],
+)
+
+lumesof_pip_install(
+    name = "chromadb_indexer_operator_site_packages",
+    lockfile = "chromadb_indexer_operator_requirements.lock",
+    tags = ["manual"],
+)
+
+lumesof_py_binary(
+    name = "launch_indexer_light_bin",
+    srcs = ["launch_indexer_light_main.py"],
+    main = "launch_indexer_light_main.py",
+    lumesof_deps = [
+        ":async_ingest_light_graph",
+        "//example_apps/lumeflow_rag/common:rag_uri",
+    ],
+    pip_install = "//example_apps/lumeflow_rag:rag_site_packages",
+)
+
+lumesof_py_binary(
+    name = "watch_chroma_counts_bin",
+    srcs = ["watch_chroma_counts_main.py"],
+    main = "watch_chroma_counts_main.py",
+)
+
+lumesof_py_test(
+    name = "launch_indexer_light_main_test",
+    srcs = [
+        "launch_indexer_light_main.py",
+        "tests/launch_indexer_light_main_test.py",
+    ],
+    main = "tests/launch_indexer_light_main_test.py",
+    lumesof_deps = [
+        ":async_ingest_light_graph",
+        "//example_apps/lumeflow_rag/common:rag_uri",
+    ],
+    pip_install = "//example_apps/lumeflow_rag:rag_site_packages",
+)
+
+lumesof_py_test(
+    name = "ingest_flow_light_test",
+    srcs = ["tests/ingest_flow_light_test.py"],
+    main = "tests/ingest_flow_light_test.py",
+    lumesof_deps = [":async_ingest_light_graph"],
+    pip_install = "//example_apps/lumeflow_rag:rag_site_packages",
+)
+
+lumesof_py_library(
+    name = "structured_extractor_operator_lib",
+    srcs = ["structure_extractor_operator.py"],
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "structured_extractor_operator_bin",
+    srcs = ["structure_extractor_operator.py"],
+    main = "structure_extractor_operator.py",
+    pip_install = ":structured_extractor_operator_site_packages",
+    lumesof_deps = [
+        ":structured_extractor_operator_lib",
+    ],
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+    ],
+)
+
+lumesof_oci_image(
+    name = "structured_extractor_operator_image",
+    binary = ":structured_extractor_operator_bin",
+)
+
+genrule(
+    name = "structured_extractor_operator_test_repo_tags",
+    outs = ["structured_extractor_operator_test_repo_tags.txt"],
+    cmd = "printf 'localhost/lumeflow-structure-extractor:latest\\n' > $@",
+)
+
+oci_load(
+    name = "structured_extractor_operator_test_load",
+    image = ":structured_extractor_operator_image",
+    repo_tags = ":structured_extractor_operator_test_repo_tags",
+)
+
+lumesof_oci_image_publish(
+    name = "structured_extractor_operator_publish",
+    image = ":structured_extractor_operator_image",
+)
+
+lore_operator(
+    name = "structured_extractor_operator",
+    binary = ":structured_extractor_operator_bin",
+    operator_src = ":structured_extractor_operator_lib",
+    operator_class = "StructureExtractorOperator",
+    publisher = "lumesof",
+    slug = "structured-extractor-light",
+    description = "Extracts document structure and emits chunk requests",
+    category = "document-processing",
+    version = "0.1.0",
+    visibility = "private",
+    target_visibility = ["//visibility:public"],
+    use_default_registry = True,
+    lumeflow_min_version = "0.1.0",
+    changelog = "Initial descriptor publish for light ingest DAG",
+    python_import_path = "example_apps.lumeflow_rag.ingest.image_descriptors.structure_extractor_operator",
+    tags = ["manual"],
+)
+
+lumesof_py_library(
+    name = "chunker_operator_lib",
+    srcs = ["chunker_operator.py"],
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "chunker_operator_bin",
+    srcs = ["chunker_operator.py"],
+    main = "chunker_operator.py",
+    pip_install = ":chunker_operator_site_packages",
+    lumesof_deps = [
+        ":chunker_operator_lib",
+    ],
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+    ],
+)
+
+lumesof_oci_image(
+    name = "chunker_operator_image",
+    binary = ":chunker_operator_bin",
+)
+
+genrule(
+    name = "chunker_operator_test_repo_tags",
+    outs = ["chunker_operator_test_repo_tags.txt"],
+    cmd = "printf 'localhost/lumeflow-chunker:latest\\n' > $@",
+)
+
+oci_load(
+    name = "chunker_operator_test_load",
+    image = ":chunker_operator_image",
+    repo_tags = ":chunker_operator_test_repo_tags",
+)
+
+lumesof_oci_image_publish(
+    name = "chunker_operator_publish",
+    image = ":chunker_operator_image",
+)
+
+lore_operator(
+    name = "chunker_operator_lore_e2e",
+    binary = ":chunker_operator_bin",
+    operator_src = ":chunker_operator_lib",
+    operator_class = "ChunkerOperator",
+    publisher = "lumesof",
+    slug = "text-chunker",
+    description = "Chunks unstructured text elements for embedding pipelines",
+    category = "document-processing",
+    version = "0.1.0",
+    visibility = "private",
+    target_visibility = ["//visibility:private"],
+    use_default_registry = True,
+    lumeflow_min_version = "0.1.0",
+    changelog = "Initial LORe E2E smoke publish",
+    tags = ["manual"],
+)
+
+lore_operator(
+    name = "chunker_operator",
+    binary = ":chunker_operator_bin",
+    operator_src = ":chunker_operator_lib",
+    operator_class = "ChunkerOperator",
+    publisher = "lumesof",
+    slug = "chunker-light",
+    description = "Chunks structured text into embedding-ready documents",
+    category = "document-processing",
+    version = "0.1.0",
+    visibility = "private",
+    target_visibility = ["//visibility:public"],
+    use_default_registry = True,
+    lumeflow_min_version = "0.1.0",
+    changelog = "Initial descriptor publish for light ingest DAG",
+    python_import_path = "example_apps.lumeflow_rag.ingest.image_descriptors.chunker_operator",
+    tags = ["manual"],
+)
+
+lore_operator_publish(
+    name = "chunker_operator_lore_e2e_publish",
+    operator = ":chunker_operator_lore_e2e",
+    tags = ["manual"],
+)
+
+lumesof_py_library(
+    name = "chromadb_indexer_operator",
+    srcs = ["chromadb_indexer_operator.py"],
+    lumesof_deps = [
+        "//example_apps/lumeflow_rag/common:ollama_model_discovery",
+    ],
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+lumesof_py_binary(
+    name = "chromadb_indexer_operator_bin",
+    srcs = ["chromadb_indexer_operator.py"],
+    main = "chromadb_indexer_operator.py",
+    pip_install = ":chromadb_indexer_operator_site_packages",
+    lumesof_deps = [
+        ":chromadb_indexer_operator",
+    ],
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+    ],
+)
+
+lumesof_oci_image(
+    name = "chromadb_indexer_operator_nomic_embed_text_v1_5_image",
+    binary = ":chromadb_indexer_operator_bin",
+    base = "@ollama_operator_base_image_nomic_embed_text_v1_5",
+)
+
+genrule(
+    name = "chromadb_indexer_operator_test_repo_tags",
+    outs = ["chromadb_indexer_operator_test_repo_tags.txt"],
+    cmd = "printf 'localhost/lumeflow-chromadb-indexer:latest\\n' > $@",
+)
+
+oci_load(
+    name = "chromadb_indexer_operator_test_load",
+    image = ":chromadb_indexer_operator_nomic_embed_text_v1_5_image",
+    repo_tags = ":chromadb_indexer_operator_test_repo_tags",
+)
+
+lumesof_oci_image_publish(
+    name = "chromadb_indexer_operator_nomic_embed_text_v1_5_publish",
+    image = ":chromadb_indexer_operator_nomic_embed_text_v1_5_image",
+)
+
+lore_operator(
+    name = "chromadb_indexer_operator_nomic_embed_text_v1_5",
+    binary = ":chromadb_indexer_operator_bin",
+    operator_src = ":chromadb_indexer_operator",
+    operator_class = "ChromaDbIndexerOperator",
+    publisher = "lumesof",
+    slug = "chromadb-indexer-nomic-embed-text-v1-5-light",
+    description = "ChromaDB indexer operator for async light ingest DAG",
+    category = "retrieval-augmented-generation",
+    version = "0.1.0",
+    visibility = "private",
+    target_visibility = ["//visibility:public"],
+    use_default_registry = True,
+    lumeflow_min_version = "0.1.0",
+    changelog = "Initial descriptor publish for light ingest DAG",
+    python_import_path = "example_apps.lumeflow_rag.ingest.image_descriptors.chromadb_indexer_operator_nomic_embed_text_v1_5",
+    oci_base = "@ollama_operator_base_image_nomic_embed_text_v1_5",
+    tags = ["manual"],
+)
+
+lumesof_oci_image(
+    name = "chromadb_indexer_operator_mxbai_embed_large_image",
+    binary = ":chromadb_indexer_operator_bin",
+    base = "@ollama_operator_base_image_mxbai_embed_large",
+)
+
+lumesof_oci_image_publish(
+    name = "chromadb_indexer_operator_mxbai_embed_large_publish",
+    image = ":chromadb_indexer_operator_mxbai_embed_large_image",
+)
+
+lumesof_oci_image(
+    name = "chromadb_indexer_operator_nomic_embed_text_v2_moe_image",
+    binary = ":chromadb_indexer_operator_bin",
+    base = "@ollama_operator_base_image_nomic_embed_text_v2_moe",
+)
+
+lumesof_oci_image_publish(
+    name = "chromadb_indexer_operator_nomic_embed_text_v2_moe_publish",
+    image = ":chromadb_indexer_operator_nomic_embed_text_v2_moe_image",
+)
+
+alias(
+    name = "chromadb_indexer_operator_image",
+    actual = ":chromadb_indexer_operator_nomic_embed_text_v1_5_image",
+)
+
+lumesof_oci_image_publish(
+    name = "chromadb_indexer_operator_publish",
+    image = ":chromadb_indexer_operator_nomic_embed_text_v1_5_image",
+)
+
+lumesof_py_test(
+    name = "structure_extractor_operator_cartond_test",
+    srcs = ["tests/structure_extractor_operator_cartond_test.py"],
+    data = [
+        ":structured_extractor_operator_test_load",
+        "//lumecode/lumeflow/runtime/v1/test_utils:standalone_operator_sidecar_app_image",
+    ],
+    main = "tests/structure_extractor_operator_cartond_test.py",
+    pip_install = ":structured_extractor_operator_site_packages",
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+        "@rules_python//python/runfiles",
+    ],
+    tags = ["manual"],
+    timeout = "long",
+)
+
+lumesof_py_test(
+    name = "chunker_operator_cartond_test",
+    srcs = ["tests/chunker_operator_cartond_test.py"],
+    data = [
+        ":chunker_operator_test_load",
+        "//lumecode/lumeflow/runtime/v1/test_utils:standalone_operator_sidecar_app_image",
+    ],
+    main = "tests/chunker_operator_cartond_test.py",
+    pip_install = ":chunker_operator_site_packages",
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+        "@rules_python//python/runfiles",
+    ],
+    tags = ["manual"],
+    timeout = "long",
+)
+
+lumesof_py_test(
+    name = "chromadb_indexer_operator_cartond_test",
+    srcs = ["tests/chromadb_indexer_operator_cartond_test.py"],
+    data = [
+        ":chromadb_indexer_operator_test_load",
+        "//lumecode/lumeflow/runtime/v1/test_utils:standalone_operator_sidecar_app_image",
+    ],
+    main = "tests/chromadb_indexer_operator_cartond_test.py",
+    pip_install = ":chromadb_indexer_operator_site_packages",
+    std_deps = [
+        "//example_apps/lumeflow_rag/common:operators_py_pb2",
+        "@rules_python//python/runfiles",
+    ],
+    tags = ["manual"],
+    timeout = "long",
+)

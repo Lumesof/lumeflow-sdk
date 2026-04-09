@@ -1,0 +1,1 @@
+FROM us-central1-docker.pkg.dev/lumesof-infra-dev/dev-docker-registry/lumesof-ollama-operator-base-mxbai-embed-large@sha256:8fd1f2e3618f498c92affb3a4e1fe49eea65b1e9c038ae51c0d630c42c315272

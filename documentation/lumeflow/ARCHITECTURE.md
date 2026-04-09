@@ -96,39 +96,39 @@ Operators are where business semantics live, while Lumeflow runtime services pro
 A port is an operator endpoint.
 Port direction semantics are:
 
-- `INGRESS`: receives data from upstream operators.
-- `EGRESS`: publishes data to downstream operators.
-- `INGRESS_BRIDGE`: receives external request/input traffic from bridge or user injection paths.
-- `EGRESS_BRIDGE`: publishes response/output traffic back to bridge requestors.
+- `INGRESS`: receives data from upstream operators or external injection paths.
+- `EGRESS`: publishes data to downstream operators or external collection paths.
 
 Port direction is not only documentation; it drives validation and link-shape legality.
-For example, each operator should expose at least one ingress port (`INGRESS` or `INGRESS_BRIDGE`) and one egress port (`EGRESS` or `EGRESS_BRIDGE`), and each link must connect one egress port to one ingress port with compatible payload type metadata.
+For example, each operator should expose at least one `INGRESS` port and one `EGRESS` port, and each link must connect one egress port to one ingress port with compatible payload type metadata.
 Mislabeling port direction is one of the most common causes of directed-graph validation errors.
+
+The DAG's external entry and exit points are declared via `dag_ingress` and `dag_egress` fields on the `Dag` message (each is an `OperatorPortIdentifier` naming an operator and port). The flow server uses these to classify ports internally for bridge and injection routing — callers do not need to set bridge-specific port directions.
 
 ### 3.6 Link Types
 
 - `REGULAR`: one producer and one consumer
-- `INJECTOR`: external ingress into a DG entry point
-- `DEADEND`: external egress from DG output
+- `SYNC_INJECTOR`: external ingress into a sync graph entry point (use with `graph_type=SYNC`)
+- `ASYNC_INJECTOR`: external ingress into an async graph entry point (use with `graph_type=ASYNC`)
+- `SYNC_RETRIEVER`: external egress from a sync graph output
 
 Choosing the right link type is what determines whether traffic enters from external producers, flows internally between operators, or exits through bridge-compatible egress paths.
 
-### 3.7 Synchronous vs Asynchronous Job Type
+### 3.7 Graph Type and Synchronous vs Asynchronous Job Type
 
-Current runtime behavior infers job type from DG shape and `app_id`:
+Each DAG carries an explicit `graph_type` field (`SYNC` or `ASYNC`). The flow server enforces that link types are consistent with the declared graph type:
 
-- Synchronous job:
+- Synchronous graph (`graph_type=SYNC`):
   - `app_id` is present
-  - exactly one `INJECTOR` link
-  - exactly one `DEADEND` link
-- Asynchronous job:
-  - `app_id` is absent
-  - `DEADEND` links are not allowed
-  - external injection uses `InjectMessage`
+  - exactly one `SYNC_INJECTOR` link
+  - exactly one `SYNC_RETRIEVER` link
+- Asynchronous graph (`graph_type=ASYNC`):
+  - uses `ASYNC_INJECTOR` for external injection
+  - `SYNC_RETRIEVER` links are not allowed
+  - external injection also possible via `InjectMessage` once STARTED
 
 This distinction is foundational for Lumeflow user API design.
 Synchronous jobs are built around request/response expectations, while asynchronous jobs are built around eventual downstream processing.
-This inference behavior is expected to change: job type is moving toward explicit job-level annotation, and `app_id` will no longer be the long-term sync/async discriminator.
 
 ### 3.8 OpNet Substrate
 
@@ -922,10 +922,11 @@ Most avoidable production incidents in distributed orchestration systems come fr
 
 ### 18.1 Before Submit
 
-- ensure directed graph has exactly one entrypoint
+- ensure `dag_ingress` is set to the operator/port that receives external input
+- ensure `dag_egress` is set for SYNC graphs (identifies bridge output); omit for ASYNC graphs
 - ensure link types and direction fields are coherent
 - ensure payload type URLs are explicit
-- decide sync (`app_id` + bridge shape) vs async (no `app_id` + no deadend)
+- decide sync (`app_id` + `SYNC_INJECTOR`/`SYNC_RETRIEVER` links) vs async (`ASYNC_INJECTOR` link, no `app_id`)
 
 ### 18.2 Before Start
 

@@ -1,0 +1,1 @@
+FROM us-central1-docker.pkg.dev/lumesof-infra-dev/dev-docker-registry/lumesof-ollama-operator-base-nomic-embed-text-v1.5@sha256:8412e84be3125e8d5d76598c2c0126e3c84156844df42f496c7312e89a60140a

@@ -1,0 +1,1 @@
+FROM us-central1-docker.pkg.dev/lumesof-infra-dev/dev-docker-registry/lumesof-ollama-operator-base-qwen2.5-1.5b@sha256:0c6fd627c8e7f8702c7b1a82725075a92177af98d19a3983768ef7bcacb0ec8a
